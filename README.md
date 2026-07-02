@@ -71,6 +71,12 @@ Then open:
 - http://127.0.0.1:8000/
 - http://127.0.0.1:8000/healthz
 
+### What you should expect to see
+
+- Opening http://127.0.0.1:8000/ will show a JSON response with simulated telemetry data such as the stock symbol, a random price, volume, and pipeline latency.
+- Opening http://127.0.0.1:8000/healthz will show a plain text response of `OK` with HTTP status `200`.
+- If you open the API documentation at http://127.0.0.1:8000/docs, you will see the interactive FastAPI docs generated automatically.
+
 ## Notes about the current setup
 
 - The app uses FastAPI for the API layer.
