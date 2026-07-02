@@ -22,20 +22,6 @@ factory-app-source/
 └── README.md
 ```
 
-## Where to put requirement.txt
-
-Place `requirement.txt` in the project root, which is the same folder as your app directory.
-
-For this project, that means:
-
-- [requirement.txt](requirement.txt)
-
-This is the correct location because:
-
-- `pip install -r requirement.txt` is usually run from the project root
-- it keeps dependency definitions close to the application source
-- it makes the project easier to share and reproduce
-
 ## Prerequisites
 
 Make sure Python 3 is installed.
