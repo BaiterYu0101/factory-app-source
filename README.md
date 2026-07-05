@@ -63,7 +63,7 @@ pip install -r requirement.txt
 Start the server with:
 
 ```bash
-uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
+uvicorn main:app --reload --host 0.0.0.0 --port 8000
 ```
 
 Then open:
