@@ -1,24 +1,27 @@
 # Factory App Source
 
-This project is a small FastAPI application that simulates a telemetry ingest API for a financial data pipeline.
+This project contains two services for a market data demo:
 
-## What this app does
+- `market-data-services/` - a FastAPI backend that serves stock data, watchlists, and pattern alerts.
+- `admin-ui/` - a Flask admin UI that signs in a user and manages their watchlist and alerts.
 
-The app exposes two endpoints:
+## What this project does
 
-- `GET /` returns simulated market telemetry data such as stock symbol, price, volume, and pipeline latency.
-- `GET /healthz` returns a simple `200 OK` response for health checks.
-
-It also prints structured JSON logs for monitoring and debugging.
+- `market-data-services` provides API endpoints for stock lookup, watchlist storage, pattern alerts, and health checks.
+- `admin-ui` provides a login page and a user-specific dashboard for watching stocks and creating alerts.
 
 ## Project structure
 
 ```text
 factory-app-source/
-├── app/
-│   └── main.py
-├── .venv/
-├── requirement.txt
+├── admin-ui/
+│   ├── app.py
+│   ├── requirements.txt
+│   └── README.md
+├── market-data-services/
+│   ├── main.py
+│   ├── requirement.txt
+│   └── .venv/
 └── README.md
 ```
 
@@ -26,56 +29,107 @@ factory-app-source/
 
 Make sure Python 3 is installed.
 
-## Setup
+## Services
 
-Before installing dependencies or running the app, activate the virtual environment from the project root.
+This repository contains two services:
 
-### macOS / Linux
+- `market-data-services/` — FastAPI backend and PostgreSQL persistence.
+- `admin-ui/` — Flask frontend with login and user-specific watchlist/alerts.
+
+## Backend setup (market-data-services)
+
+The frontend now supports password-based signup and login. Users are persisted in `admin-ui/users.json`.
+
+
+1. Change into the backend folder:
+
+```bash
+cd market-data-services
+```
+
+2. Create and activate the Python virtual environment:
 
 ```bash
 python3 -m venv .venv
 source .venv/bin/activate
 ```
 
-### Windows (PowerShell)
-
-```powershell
-py -m venv .venv
-.\.venv\Scripts\Activate.ps1
-```
-
-If PowerShell blocks the script, run this once:
-
-```powershell
-Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass
-```
-
-Then install dependencies:
+3. Install backend dependencies:
 
 ```bash
 pip install -r requirement.txt
 ```
 
-> Important: make sure the virtual environment is activated before running the app or installing packages.
+4. Prepare PostgreSQL:
 
-## Run the app
+- Create a database user if needed, or use your local OS user.
+- Create the database named `factorydb`.
 
-Start the server with:
+Example:
 
 ```bash
-uvicorn main:app --reload --host 0.0.0.0 --port 8000
+psql -h localhost -U jerry -c 'CREATE DATABASE factorydb;'
 ```
 
-Then open:
+5. Set environment variables if you need custom creds:
 
-- http://127.0.0.1:8000/
-- http://127.0.0.1:8000/healthz
+```bash
+export DB_USER=jerry
+export DB_NAME=factorydb
+export DATABASE_URL=postgresql+psycopg://jerry@localhost:5432/factorydb
+```
 
-### What you should expect to see
+6. Start the backend:
 
-- Opening http://127.0.0.1:8000/ will show a JSON response with simulated telemetry data such as the stock symbol, a random price, volume, and pipeline latency.
-- Opening http://127.0.0.1:8000/healthz will show a plain text response of `OK` with HTTP status `200`.
-- If you open the API documentation at http://127.0.0.1:8000/docs, you will see the interactive FastAPI docs generated automatically.
+```bash
+uvicorn main:app --reload --host 0.0.0.0 --port 8001
+```
+
+## Frontend setup (admin-ui)
+
+1. Change into the frontend folder:
+
+```bash
+cd ../admin-ui
+```
+
+2. Install frontend dependencies:
+
+```bash
+pip install -r requirements.txt
+```
+
+3. Start the Flask admin UI:
+
+```bash
+python app.py
+```
+
+4. Open the UI in your browser:
+
+- http://127.0.0.1:8080/
+
+## Login and user-specific behavior
+
+- The admin UI requires a user ID on sign in.
+- Each user ID gets its own watchlist and alerts.
+- After sign in, all watchlist and alert requests are routed through Flask session state.
+- No manual `user_id` is required on the watchlist or alert pages.
+
+## Testing the flow
+
+1. Start the backend service on port `8001`.
+2. Start the admin UI on port `8080`.
+3. Open the browser at `http://127.0.0.1:8080/`.
+4. Sign in with a user ID such as `alice` or `bob`.
+5. Add symbols to the watchlist and create pattern alerts.
+6. Open the live watchlist page to see user-specific data refresh every 6 seconds.
+
+## Notes
+
+- `market-data-services` uses PostgreSQL via SQLAlchemy.
+- `admin-ui` uses Flask sessions and forwards the signed-in user ID automatically.
+- If the backend service is not running, the frontend will show API connection errors.
 
 ## Notes about the current setup
 
