@@ -18,7 +18,7 @@ def create_app():
     <head>
         <meta charset="utf-8">
         <meta name="viewport" content="width=device-width, initial-scale=1">
-        <title>Market Data Admin</title>
+        <title>Data Admin</title>
         <style>
             body { font-family: Arial, sans-serif; margin: 2rem; background: #f6f8fb; color: #1f2937; }
             .card { background: white; padding: 1.2rem; border-radius: 12px; margin-bottom: 1rem; box-shadow: 0 1px 3px rgba(0,0,0,0.08); }
