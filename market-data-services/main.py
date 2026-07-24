@@ -1,5 +1,7 @@
 import json
 import time
+import hashlib
+import hmac
 from datetime import datetime
 from typing import List, Optional
 from uuid import uuid4
@@ -48,6 +50,13 @@ class PatternAlertDB(Base):
     pattern = Column(String, nullable=False)
     threshold = Column(Float, nullable=True)
     status = Column(String, default="active", nullable=False)
+
+
+class UserDB(Base):
+    __tablename__ = "users"
+
+    user_id = Column(String, primary_key=True, index=True)
+    password_hash = Column(String, nullable=False)
 
 
 init_db()
@@ -146,6 +155,24 @@ class PatternAlert(BaseModel):
     status: str
 
 
+class UserSignup(BaseModel):
+    user_id: str = Field(..., example="user-123")
+    password: str = Field(..., example="changeme")
+
+
+class UserLogin(BaseModel):
+    user_id: str = Field(..., example="user-123")
+    password: str = Field(..., example="changeme")
+
+
+def hash_password(password: str) -> str:
+    return hashlib.sha256(password.encode('utf-8')).hexdigest()
+
+
+def verify_password(password: str, password_hash: str) -> bool:
+    return hmac.compare_digest(hash_password(password), password_hash)
+
+
 def get_watchlist_symbols(db, user_id: str) -> List[str]:
     query = db.query(WatchlistDB).filter(WatchlistDB.user_id == user_id).order_by(WatchlistDB.added_at)
     return [row.symbol for row in query.all()]
@@ -220,6 +247,33 @@ def get_pattern_alerts_for_user(db, user_id: str) -> List[dict]:
         }
         for row in results
     ]
+
+
+@app.post("/api/v1/users/signup")
+def signup_user(signup: UserSignup):
+    db = SessionLocal()
+    try:
+        existing = db.query(UserDB).filter(UserDB.user_id == signup.user_id).first()
+        if existing:
+            raise HTTPException(status_code=409, detail="User ID already exists.")
+        user = UserDB(user_id=signup.user_id, password_hash=hash_password(signup.password))
+        db.add(user)
+        db.commit()
+        return {"user_id": signup.user_id, "message": "User created."}
+    finally:
+        db.close()
+
+
+@app.post("/api/v1/users/login")
+def login_user(credentials: UserLogin):
+    db = SessionLocal()
+    try:
+        user = db.query(UserDB).filter(UserDB.user_id == credentials.user_id).first()
+        if not user or not verify_password(credentials.password, user.password_hash):
+            raise HTTPException(status_code=401, detail="Invalid user ID or password.")
+        return {"user_id": credentials.user_id, "message": "Authenticated."}
+    finally:
+        db.close()
 
 
 @app.get("/api/v1/stock/{symbol}")

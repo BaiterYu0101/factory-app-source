@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Sign In</title>
+  <style>
+    body { font-family: Arial, sans-serif; margin: 2rem; background: #f6f8fb; color: #1f2937; }
+    .card { background: white; padding: 1.6rem; border-radius: 14px; max-width: 420px; margin: auto; box-shadow: 0 12px 30px rgba(15, 23, 42, 0.06); }
+    input, button { width: 100%; padding: 0.9rem; margin: 0.75rem 0; border-radius: 10px; border: 1px solid #d1d5db; }
+    input::placeholder { color: #9ca3af; }
+    button { background: #2563eb; color: white; border: none; cursor: pointer; }
+    .error { color: #991b1b; background: #fee2e2; padding: 0.9rem 1rem; border-radius: 10px; margin-bottom: 1rem; border: 1px solid #fecaca; }
+    .secondary { color: #2563eb; text-decoration: none; font-weight: 700; }
+    h1 { margin-bottom: 0.25rem; }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <h1>Sign in</h1>
+    <p>Enter your user ID and password to access your watchlist and alerts.</p>
+    {% if login_error %}
+      <div class="error">{{ login_error }}</div>
+    {% endif %}
+    <form method="post" action="/login">
+      <input name="user_id" value="{{ user_id }}" placeholder="user-123" autofocus>
+      <input type="password" name="password" placeholder="Password">
+      <button type="submit">Sign in</button>
+    </form>
+    <p>Don't have an account? <a class="secondary" href="{{ url_for('signup_page') }}">Create one</a></p>
+  </div>
+</body>
+</html>

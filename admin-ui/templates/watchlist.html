@@ -1,0 +1,196 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Live Watchlist</title>
+  <style>
+    body { font-family: Arial, sans-serif; margin: 2rem; background: #f4f7fb; color: #111827; }
+    .page { max-width: 980px; margin: auto; }
+    .card { background: white; border-radius: 16px; padding: 1.3rem; margin-bottom: 1.2rem; box-shadow: 0 12px 30px rgba(15, 23, 42, 0.06); }
+    .section-title { font-size: 1.25rem; margin-bottom: 0.75rem; }
+    table { width: 100%; border-collapse: collapse; margin-top: 1rem; }
+    th, td { text-align: left; padding: 0.85rem; border-bottom: 1px solid #e5e7eb; }
+    th { color: #374151; }
+    .badge { display: inline-flex; align-items: center; gap: 0.35rem; padding: 0.45rem 0.75rem; border-radius: 999px; font-size: 0.95rem; }
+    .good { background: #d1fae5; color: #065f46; }
+    .danger { background: #fee2e2; color: #991b1b; }
+    .notification { margin-top: 1rem; padding: 1rem; border-radius: 12px; }
+    .notification.good { background: #ecfdf5; color: #134e4a; }
+    .notification.alert { background: #fef2f2; color: #7f1d1d; }
+    .top-links { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem; }
+    .top-links a { color: #2563eb; font-weight: 700; text-decoration: none; }
+    button { background: #2563eb; color: white; border: none; border-radius: 10px; padding: 0.6rem 0.9rem; cursor: pointer; }
+  </style>
+</head>
+<body>
+  <div class="page">
+    <div class="top-links">
+      <h1>Live Watchlist</h1>
+      <a href="{{ url_for('index') }}">← Back to dashboard</a>
+    </div>
+
+    <div class="card">
+      <div class="section-title">Watchlist for {{ user_id }}</div>
+      <div id="statusBanner" class="notification good">Loading live watchlist...</div>
+      <table>
+        <thead>
+          <tr>
+            <th>Symbol</th>
+            <th>Price</th>
+            <th>Previous Close</th>
+            <th>Latency</th>
+            <th>Alert</th>
+            <th>Action</th>
+          </tr>
+        </thead>
+        <tbody id="watchlistRows"></tbody>
+      </table>
+      <p style="margin-top: 0.75rem; color: #4b5563;">Data refreshes every 6 seconds.</p>
+    </div>
+
+    <div class="card">
+      <div class="section-title">Pattern Alerts</div>
+      <form id="alertForm">
+        <div style="display:grid; gap:0.75rem;">
+          <input name="symbol" placeholder="AAPL">
+          <input name="pattern" placeholder="bullish-engulfing">
+          <input name="threshold" placeholder="150.0">
+          <button type="submit">Create Alert</button>
+        </div>
+      </form>
+      <div id="alertMessage" class="notification" style="display:none;"></div>
+      <table style="margin-top: 1rem;">
+        <thead>
+          <tr>
+            <th>Symbol</th>
+            <th>Pattern</th>
+            <th>Threshold</th>
+            <th>Status</th>
+            <th>Remove</th>
+          </tr>
+        </thead>
+        <tbody id="alertRows"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <script>
+    const watchlistRows = document.getElementById('watchlistRows');
+    const alertRows = document.getElementById('alertRows');
+    const statusBanner = document.getElementById('statusBanner');
+    const alertMessage = document.getElementById('alertMessage');
+
+    async function fetchWatchlistData() {
+      try {
+        const response = await fetch('/watchlist_data');
+        if (!response.ok) throw new Error(await response.text());
+        return await response.json();
+      } catch (error) {
+        statusBanner.textContent = `Unable to load watchlist: ${error.message}`;
+        statusBanner.className = 'notification alert';
+        return null;
+      }
+    }
+
+    function renderWatchlist(items) {
+      if (!items.length) {
+        watchlistRows.innerHTML = '<tr><td colspan="6">Watchlist is empty.</td></tr>';
+        return;
+      }
+      watchlistRows.innerHTML = items.map(item => {
+        const badgeClass = item.triggered ? 'danger' : 'good';
+        const badgeText = item.triggered ? 'Triggered' : 'OK';
+        return `
+          <tr>
+            <td>${item.symbol}</td>
+            <td>${item.last_price?.toFixed(2) ?? '—'} ${item.currency ?? ''}</td>
+            <td>${item.previous_close?.toFixed(2) ?? '—'}</td>
+            <td>${item.pipeline_latency_ms ?? '—'}</td>
+            <td><span class="badge ${badgeClass}">${badgeText}</span></td>
+            <td><button onclick="removeSymbol('${item.symbol}')">Remove</button></td>
+          </tr>
+        `;
+      }).join('');
+    }
+
+    function renderAlerts(alerts) {
+      if (!alerts.length) {
+        alertRows.innerHTML = '<tr><td colspan="5">No alerts created yet.</td></tr>';
+        return;
+      }
+      alertRows.innerHTML = alerts.map(alert => {
+        const statusClass = alert.triggered ? 'danger' : 'good';
+        const statusText = alert.triggered ? 'Triggered' : 'Inactive';
+        return `
+          <tr>
+            <td>${alert.symbol}</td>
+            <td>${alert.pattern}</td>
+            <td>${alert.threshold ?? '—'}</td>
+            <td><span class="badge ${statusClass}">${statusText}</span></td>
+            <td><button onclick="deleteAlert('${alert.alert_id}')">Remove</button></td>
+          </tr>
+        `;
+      }).join('');
+    }
+
+    async function refreshAll() {
+      const data = await fetchWatchlistData();
+      if (!data) return;
+      renderWatchlist(data.watchlist || []);
+      renderAlerts(data.alerts || []);
+      statusBanner.textContent = `Updated ${new Date().toLocaleTimeString()}. ${data.watchlist.length} symbols.`;
+      statusBanner.className = 'notification good';
+      const activeAlerts = data.alerts.filter(alert => alert.triggered);
+      if (activeAlerts.length > 0) {
+        alertMessage.style.display = 'block';
+        alertMessage.textContent = `${activeAlerts.length} alert(s) triggered.`;
+        alertMessage.className = 'notification alert';
+      } else {
+        alertMessage.style.display = 'none';
+      }
+    }
+
+    async function removeSymbol(symbol) {
+      await fetch('/remove_watchlist', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ symbol }),
+      });
+      refreshAll();
+    }
+
+    async function deleteAlert(alertId) {
+      await fetch('/remove_alert', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ alert_id: alertId }),
+      });
+      refreshAll();
+    }
+
+    document.getElementById('alertForm').addEventListener('submit', async event => {
+      event.preventDefault();
+      const formData = new FormData(event.target);
+      const payload = {
+        symbol: formData.get('symbol'),
+        pattern: formData.get('pattern'),
+        threshold: parseFloat(formData.get('threshold')),
+      };
+      const response = await fetch('/create_alert', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+      const result = await response.json();
+      alertMessage.style.display = 'block';
+      alertMessage.textContent = result.message || JSON.stringify(result);
+      alertMessage.className = response.ok ? 'notification good' : 'notification alert';
+      refreshAll();
+    });
+
+    refreshAll();
+    setInterval(refreshAll, 6000);
+  </script>
+</body>
+</html>

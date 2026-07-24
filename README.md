@@ -38,7 +38,7 @@ This repository contains two services:
 
 ## Backend setup (market-data-services)
 
-The frontend now supports password-based signup and login. Users are persisted in `admin-ui/users.json`.
+The frontend now supports password-based signup and login. User accounts are stored in the backend PostgreSQL database.
 
 
 1. Change into the backend folder:
