@@ -2,14 +2,14 @@
 
 This repository contains two services for a market data demo:
 
-- `market-data-services/` — FastAPI backend with PostgreSQL persistence.
+- `market-data-services/` — FastAPI backend with file-based JSON persistence.
 - `admin-ui/` — Flask frontend with login, watchlists, and alerts.
 
 ## Overview
 
 - `market-data-services` serves stock lookup, watchlist storage, pattern alerts, and health checks.
 - `admin-ui` provides the login/signup UI and user-specific dashboard.
-- User accounts are stored in the backend PostgreSQL database.
+- User accounts are stored in a simple file-backed JSON store (no external DB required).
 
 ## Project structure
 
@@ -29,7 +29,6 @@ factory-app-source/
 ## Prerequisites
 
 - Python 3
-- PostgreSQL
 
 ## Backend setup (`market-data-services`)
 
@@ -52,19 +51,7 @@ source .venv/bin/activate
 pip install -r requirement.txt
 ```
 
-4. Create the database:
-
-```bash
-psql -h localhost -U <db_user> -c 'CREATE DATABASE factorydb;'
-```
-
-5. Optionally set custom DB environment variables:
-
-```bash
-export DB_USER=<db_user>
-export DB_NAME=factorydb
-export DATABASE_URL=postgresql+psycopg://<db_user>@localhost:5432/factorydb
-```
+4. No database setup is required — the backend persists data to JSON files in `market-data-services/data/`.
 
 6. Start the backend:
 
@@ -101,7 +88,7 @@ python app.py
 - `admin-ui` uses `API_BASE_URL` to call the backend.
 - Default backend URL: `http://localhost:8001`.
 - The frontend sends authenticated requests with the current `user_id`.
-- The backend stores users, watchlists, and alerts in PostgreSQL.
+- The backend stores users, watchlists, and alerts in a local JSON data directory by default (`market-data-services/data/`).
 
 ## User flow
 
@@ -124,7 +111,7 @@ docker push <username>/factory-admin-ui:latest
 
 ## Notes
 
-- The backend uses SQLAlchemy for DB persistence.
+- The backend uses a simple file-backed JSON store for persistence (no SQLAlchemy required).
 - The frontend uses Flask sessions and delegates auth to the backend.
 - Start the backend before using the frontend, otherwise API requests will fail.
 

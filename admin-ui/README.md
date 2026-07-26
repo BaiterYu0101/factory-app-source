@@ -49,5 +49,5 @@ export API_BASE_URL=http://localhost:8001
 - The signup page requires a unique `user_id` and a password.
 - After signup, you are signed in and brought to the dashboard.
 - Each distinct `user_id` gets its own watchlist and alerts.
-- Account credentials are stored in the backend PostgreSQL database.
+- Account credentials are stored in the backend's JSON data store (no external DB required).
 - After sign in, the UI no longer requires manual `user_id` entry for watchlist or alerts.
